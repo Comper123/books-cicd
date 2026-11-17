@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "docs/**"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    container: python:3.11.10-slim
+
+    steps:
+      - name: Скачать проект
+        uses: actions/checkout@v4
+
+      - name: Показать версию Python и коммит
+        run: |
+          python --version
+          echo "Commit: $GITHUB_SHA"
+
+      - name: Проверить Python-файлы
+        run: python -m compileall -q .
+
+      - name: Проверить README.md
+        run: test -f README.md
+
+      - name: Проверить app.py
+        run: test -s app.py
+
+  unit_tests:
+    needs: validate
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    container: python:3.11.10-slim
+
+    steps:
+      - name: Скачать проект
+        uses: actions/checkout@v4
+
+      - name: Запустить тесты
+        run: python -m unittest discover -s tests -v
