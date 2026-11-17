@@ -58,6 +58,15 @@ jobs:
       - name: Скачать проект
         uses: actions/checkout@v4
 
+      - name: Проверить секрет и переменную
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          APP_PORT: ${{ vars.APP_PORT }}
+        run: |
+          test -n "$DEPLOY_TOKEN"
+          test "$APP_PORT" = "8102"
+          echo "Секрет и переменная настроены"
+
       - name: Создать папку dist
         run: mkdir dist
 
