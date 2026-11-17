@@ -20,3 +20,5 @@ python app.py --help
 ```
 python -m unittest discover -s tests -v
 ```
+
+`Документация проверена в отдельной ветке.`
