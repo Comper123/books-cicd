@@ -13,7 +13,7 @@ def search_books(books, author):
     result = []
 
     for book in books:
-        if author.lower() in book["author"].lower():
+        if author in book["author"]:
             result.append(book)
 
     return result
