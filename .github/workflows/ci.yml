@@ -93,3 +93,47 @@ jobs:
           name: books-package
           path: dist/
           retention-days: 7
+          
+  deploy_test:
+    needs: package
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    container: python:3.11.10-slim
+
+    environment:
+      name: test/books
+      url: https://github.com/Comper123/books-cicd/actions
+
+    steps:
+      - name: Скачать артефакт
+        uses: actions/download-artifact@v4
+        with:
+          name: books-package
+          path: dist
+
+      - name: Проверить токен
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: test -n "$DEPLOY_TOKEN"
+
+      - name: Скопировать файлы
+        run: |
+          mkdir -p deploy/test
+          cp -r dist/* deploy/test/
+
+      - name: Выполнить дымовую проверку
+        env:
+          APP_PORT: ${{ vars.APP_PORT }}
+        run: |
+          python deploy/test/books.py --help > deploy/test/deployment.txt
+          python deploy/test/books.py deploy/test/books.json.example --author "пушкин" >> deploy/test/deployment.txt
+          echo "APP_PORT=$APP_PORT" >> deploy/test/deployment.txt
+          echo "DEPLOYMENT=SUCCESS" >> deploy/test/deployment.txt
+          cat deploy/test/deployment.txt
+
+      - name: Сохранить результат развёртывания
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-report
+          path: deploy/test/deployment.txt
+          retention-days: 7
