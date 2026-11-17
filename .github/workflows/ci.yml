@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - "docs/**"
+    tags:
+      - "*"
   pull_request:
     branches:
       - main
@@ -35,7 +37,7 @@ jobs:
 
   unit_tests:
     needs: validate
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     container: python:3.11.10-slim
 
@@ -45,3 +47,40 @@ jobs:
 
       - name: Запустить тесты
         run: python -m unittest discover -s tests -v
+
+  package:
+    needs: unit_tests
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    container: python:3.11.10-slim
+
+    steps:
+      - name: Скачать проект
+        uses: actions/checkout@v4
+
+      - name: Создать папку dist
+        run: mkdir dist
+
+      - name: Скопировать файлы
+        run: |
+          cp books.py dist/
+          cp README.md dist/
+          cp Dockerfile dist/
+          cp books.json.example dist/
+
+      - name: Создать manifest.txt
+        run: |
+          echo "COMMIT=$GITHUB_SHA" > dist/manifest.txt
+          echo "RUN_ID=$GITHUB_RUN_ID" >> dist/manifest.txt
+          echo "FILES:" >> dist/manifest.txt
+          echo "books.py" >> dist/manifest.txt
+          echo "README.md" >> dist/manifest.txt
+          echo "Dockerfile" >> dist/manifest.txt
+          echo "books.json.example" >> dist/manifest.txt
+
+      - name: Загрузить артефакт
+        uses: actions/upload-artifact@v4
+        with:
+          name: books-package
+          path: dist/
+          retention-days: 7
